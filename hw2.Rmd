@@ -1,0 +1,80 @@
+---
+title: "hw2"
+author: "Tanupat Boonchalermvichien"
+date: "February 4, 2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Inferred Links by high-throughput protein-protein interactions (Homo sapiens)
+
+```{r}
+library(igraph)
+
+bio.HS.HT <- read.table("~/Term1-2network/bio-HS-HT/bio-HS-HT.edges", quote="\"", comment.char="")
+
+graph <- graph_from_data_frame(bio.HS.HT[1:2], directed = FALSE, vertices = NULL)
+
+tab <- degree(graph) %>% table() 
+mat <- as.matrix(tab)
+plot(tab,type='l')
+k <- as.numeric(row.names(mat))
+n <- gorder(graph)
+n == sum(mat[,1]) ## TRUE
+pk <- mat[,1]/n
+
+
+```
+
+
+
+```{r}
+plot(x = k, y = pk,type='l')
+
+```
+
+
+
+```{r}
+plot(x = log(k), y = log(pk), type= 'l')+
+  abline(lm(log(pk)~log(k)), col ='red')
+lm(log(pk)~log(k))
+
+
+```
+log(pk) = -1.6059log(k)-0.3092
+
+```{r}
+
+vec <- as.vector(mat)
+o <- rank(vec)
+plot(x = k, y = o, ylab='rank')
+plot(x = k, y = o, ylab='rank', log = 'y')
+
+diameter(graph)
+```
+
+## build random graph with same no. of nodes and degrees
+
+```{r}
+random <- erdos.renyi.game(n, gsize(graph), type = 'gnm')
+tab2 <- degree(random) %>% table() 
+mat2 <- as.matrix(tab2)
+plot(tab2,type='l')
+k2 <- as.numeric(row.names(mat2))
+n2 <- gorder(graph)
+pk2 <- mat2[,1]/n2
+```
+```{r}
+plot(x = k2, y = pk2,type='l')
+plot(x = k, y= pk, type = 'l')
+```
+
+
+```{r}
+diameter(random)
+diameter(graph)
+```

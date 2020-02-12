@@ -1,0 +1,147 @@
+---
+title: "hw1"
+author: "Tanupat Boonchalermvichien"
+date: "January 28, 2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### HW1
+
+
+##1.2
+```{r}
+library(igraph)
+tang <- make_empty_graph(directed = FALSE)+
+  vertices(LETTERS[1:5])+
+  edges('A','B', 'A','C', 'A','D',
+        'B','C', 'B','D',
+        'C','D')
+plot(tang)
+
+tang2 <- tang-V(tang)[degree(tang)==0]
+plot(tang2)
+
+tang3 <- delete.vertices(tang, v = degree(tang)==0)
+plot(tang3)
+
+tang4 <- induced_subgraph(tang, degree(tang)!= 0)
+plot(tang4)
+```
+
+##2.8  
+
+```{r}
+bow <- make_graph(~A-+B-+C-+A,
+                    D-+A,
+                    B-+E,
+                    E-+G,
+                    H-+C,
+                    I)
+plot(bow)
+```
+```{r}
+bowtie <- function(graph){
+  bowtie <- list()
+  incom <- FALSE
+  outcom <- FALSE
+  tendril <- FALSE
+  disconnected <- FALSE
+  c <- components(graph, mode = 'strong')
+  coreindex <- which.max(c$csize)
+  corevertices <- V(graph)[c$membership == coreindex]
+  for(v in V(graph)){
+    if(!(v %in% corevertices)){
+      neighin <- neighborhood(graph, order = gorder(graph), nodes = v, mode = 'out')
+      neighout <- neighborhood(graph, order = gorder(graph), nodes = v, mode = 'in')
+      neighall <- neighborhood(graph, order = gorder(graph), nodes = v, mode = 'all')
+      if(corevertices %in% neighin[[1]]){
+        if(incom==FALSE){
+          incom <- V(graph)[v]
+        }else{
+          incom <- c(incom,V(graph)[v])
+        }
+      }else if(corevertices %in% neighout[[1]]){
+        if(outcom==FALSE){
+          outcom <- V(graph)[v]
+        }else{
+          outcom <- c(outcom,V(graph)[v])
+        }
+      }else if(corevertices %in% neighall[[1]]){
+        if(tendril==FALSE){
+          tendril <- V(graph)[v]
+        }else{
+          tendril <- c(tendril,V(graph)[v])
+        }
+      }else{
+        if(disconnected==FALSE){
+          disconnected <- V(graph)[v]
+        }else{
+          disconnected <- c(disconnected,V(graph)[v])
+        }
+      }
+    }
+  }
+  bowtie <- list(core_vertices=corevertices,in_component=incom,out_component=outcom,tendril=tendril,disconnected=disconnected)
+  return(bowtie)
+}
+
+print(bowtie(bow))
+```
+
+##HW1.2
+```{r}
+name <- c('s','2','3','4','5','6','7','t')
+mat <- c(0,10,5,15,0,0,0,0,
+         0,0,4,0,9,15,0,0,
+         0,0,0,4,0,8,0,0,
+         0,0,0,0,0,0,30,0,
+         0,0,0,0,0,15,0,10,
+         0,0,0,0,0,0,15,10,
+         0,0,6,0,0,0,0,10,
+         0,0,0,0,0,0,0,0)
+mat <- matrix(mat, nrow = 8, byrow =TRUE)
+rownames(mat) <- name
+colnames(mat) <- name
+graph <- graph_from_adjacency_matrix(mat, mode = 'directed', weighted = TRUE)
+plot(graph)
+```
+```{r}
+dijkstra <- function(graph, s, t){
+  graph <- set_vertex_attr(graph, 'dist', index=V(graph), value=Inf)
+  V(graph)[s]$dist <- 0 
+  graph <- set_vertex_attr(graph, 'previous', index=V(graph), value=FALSE)
+  V(graph)[s]$previous <- V(graph)[s]$name
+  q <- V(graph)
+  while(length(q)!=0){
+    u <- V(graph)[q]$name[which.min(V(graph)[q]$dist)]
+    q <- difference(q,q[u])
+    if(u!=t){
+    neighbor <- neighborhood(graph,order=1,nodes=V(graph)[u],mode = 'out')[[1]]$name
+    neighbor <- neighbor[2:length(neighbor)]
+    for(nei in neighbor){
+      alt <- V(graph)[u]$dist+ E(graph)[u %->% nei]$weight
+      if(alt<V(graph)[nei]$dist){
+        V(graph)[nei]$dist <- alt
+        o <- list(c(V(graph)[u]$previous[[1]],V(graph)[nei]$name))
+        graph <- set_vertex_attr(graph,'previous',index=nei,value=o)
+        #V(graph)[nei]$previous<-list(V(graph)[u]$previous,V(graph)[nei]$name)
+      }
+    }
+    }else{
+      return(V(graph)[t]$previous)
+    }
+  }
+}
+
+print(dijkstra(graph, 's','t'))
+```
+
+##2 Again from the above graph. Let’s each node is a city and each edge represent the route between two cities. The edge’s weights represent the number of packages which can be delivered by the local delivery from a city to another city. Find maximum packages which can be delivered from s to t with the smallest number of routes by the igraph function in R)
+```{r}
+max_flow(graph,'s','t')$value
+
+```
