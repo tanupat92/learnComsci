@@ -1,0 +1,119 @@
+---
+title: "hw5"
+author: "Tanupat Boonchalermvichien"
+date: "February 19, 2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### According to the exercise “Network Structure and Similarity (NetStru_Rlab)”, answer the following questions which are the same as written in the exercise.
+
+## According to the given network, what is the maximal subgraph in which every vertex has at least degree 1, 2, 3, 4, or 5?
+```{r}
+library(igraph)
+
+adj <- matrix(
+  c(0,1,0,1,1,1,0,
+    1,0,0,1,0,1,1,
+    0,0,0,1,0,0,0,
+    1,1,1,0,0,1,1,
+    1,0,0,0,0,1,0,
+    1,1,0,1,1,0,1,
+    0,1,0,1,0,1,0), 
+  nrow=7, ncol=7,
+  byrow=TRUE,
+  dimnames = list(c('A','B','C','D','E','F','G'),
+                  c('A','B','C','D','E','F','G'))
+)
+
+g <- graph.adjacency(t(adj), mode='undirected')
+plot(g, layout = layout_nicely)
+```
+
+```{r}
+c = coreness(g)
+for (i in 1:max(c)){
+  cat('maximum subgraph with',i,'degrees has', sum(c>=i), 'vertices\n')
+}
+```
+
+## Fix the function ‘getMotifs’ to get the correct number of motifs.
+
+```{r}
+motifs(g)
+# [1] NA NA 12  8
+# motif size 3 = 12
+# motif size 4 = 8 
+
+getMotifs <- function(mygraph, size=3){
+  pattern <- graph.full(size)
+  iso <- subgraph_isomorphisms(pattern, mygraph)
+  motifs <- lapply(iso, function(x){induced_subgraph(mygraph, x)})
+  return(motifs)
+}
+allmotifs <- getMotifs(g,4)
+allmotifs
+```
+
+```{r}
+getMotifs_fixed <- function(mygraph, size=3){
+  pattern <- graph.full(size)
+  iso <- subgraph_isomorphisms(pattern, mygraph)
+  
+  motifs <- lapply(iso, function(x){induced_subgraph(mygraph, x)})
+  motifs <- lapply(motifs, function(x){as_ids(E(x))})
+  return(unique(motifs))
+}
+allmotifs_fixed <- getMotifs_fixed(g, 4)
+
+allmotifs_fixed
+
+```
+
+
+## What are the differences among Jaccard, Dice and inverse log-weighted similarities?
+
+jaccard similarity is intersect(A,B)/union(A,B)
+Dice similarity is 2v/(ki+kj) if v is number of similar vertices
+inverse log-weighted is sum of all vertices (v)  sumv((1/log(kv))*cicj) if ci=1 iff that vertex is a neighbor of vertex i; ci=0 vice versa, kv is degree of vertex v
+
+## How can we calculate node similarity like cosine similarity and correlation in R?
+
+```{r}
+library(lsa)
+adj_mat <- as.matrix(as_adjacency_matrix(g))
+cos <- cosine(adj_mat)
+corrplot::corrplot(cos)
+heatmap(cos)
+```
+```{r}
+co <- cor(adj_mat)
+corrplot::corrplot(co)
+heatmap(co)
+```
+## Interpret the assortativity results and compare them with the random network and the BA network.
+
+```{r}
+k = gorder(g)
+assortativity_degree(g)
+#assortativity_degree(sample_pa(n = k, directed = FALSE))
+#assortativity_degree(sample_gnp(n = k, p = gsize(g)/(k*(k-1)/2)))
+
+sim <- function(time= 100, graph_statement){
+  a = 0
+  for (i in 1:time){
+    a = a+ graph_statement
+  }
+  return(a/time)
+}
+
+cat('preferential attachment',sim(100, assortativity_degree(sample_pa(n = k, directed = FALSE))),'\n')
+cat('random graph',sim(100, assortativity_degree(sample_gnp(n = k, p = gsize(g)/(k*(k-1)/2)))))
+```
+preferential attachment has lowest assortativity coefficient
+followed by random graph
+and our graph g has highest assortativity coefficient
+the higher assortativity coefficient means the more high-degree nodes stay together. 
