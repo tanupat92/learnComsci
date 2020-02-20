@@ -43,10 +43,10 @@ for (i in 1:max(c)){
 ## Fix the function ‘getMotifs’ to get the correct number of motifs.
 
 ```{r}
-motifs(g)
+motifs(g, 3)
 # [1] NA NA 12  8
-# motif size 3 = 12
-# motif size 4 = 8 
+motifs(g, 4)
+# [1] NA NA NA NA  1 NA  4 10  0  5  2
 
 getMotifs <- function(mygraph, size=3){
   pattern <- graph.full(size)
@@ -54,8 +54,9 @@ getMotifs <- function(mygraph, size=3){
   motifs <- lapply(iso, function(x){induced_subgraph(mygraph, x)})
   return(motifs)
 }
-allmotifs <- getMotifs(g,4)
-allmotifs
+allmotifs <- getMotifs(g,3)
+plot(graph_from_isomorphism_class(3,3,directed=FALSE)) # should have 8 motifs
+length(allmotifs)
 ```
 
 ```{r}
@@ -67,11 +68,37 @@ getMotifs_fixed <- function(mygraph, size=3){
   motifs <- lapply(motifs, function(x){as_ids(E(x))})
   return(unique(motifs))
 }
-allmotifs_fixed <- getMotifs_fixed(g, 4)
+allmotifs_fixed <- getMotifs_fixed(g, 3)
 
-allmotifs_fixed
+length(allmotifs_fixed) # 8 motifs as same as expected!
 
 ```
+try generalize function to get all isomorphism class number in our graph with motif size 3 and 4
+```{r}
+getNumAllMotifs <- function(mygraph, size=3){
+  a <- c()
+  n <- ifelse(size==3, 3, 10)
+  for (i in 0:n){
+    pattern <- graph_from_isomorphism_class(size,i,directed = FALSE)
+    if (is_connected(pattern)){
+    #plot(pattern)
+    iso <- subgraph_isomorphisms(pattern, mygraph, method = 'vf2')
+    motifs <- lapply(iso,function(x){as_ids(E(induced_subgraph(mygraph, x)))})
+    motifs <- unique(motifs)
+    b <- sum(unlist(lapply(motifs, function(x){length(x) == gsize(pattern)})))
+    } else{
+      b <- NA
+    }
+    a <- append(a, b )
+    }
+  return(a)
+}
+cat('This is our result for motif size 3 \n', getNumAllMotifs(g, size=3), '\n')
+cat('This is expected for motif size 3: \n',motifs(g, size=3),'\n')
+cat('This is our result for motif size 4 \n', getNumAllMotifs(g, size=4), '\n')
+cat('This is expected for motif size 4: \n',motifs(g, size=4))
+```
+
 
 
 ## What are the differences among Jaccard, Dice and inverse log-weighted similarities?
