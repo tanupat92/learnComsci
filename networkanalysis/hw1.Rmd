@@ -121,8 +121,12 @@ dijkstra <- function(graph, s, t){
     q <- difference(q,q[u])
     if(u!=t){
     neighbor <- neighborhood(graph,order=1,nodes=V(graph)[u],mode = 'out')[[1]]$name
-    neighbor <- neighbor[2:length(neighbor)]
+    if (length(neighbor)>1){
+      neighbor <- neighbor[2:length(neighbor)]
+    #cat('u', u, 'neighbor', neighbor)
+    
     for(nei in neighbor){
+      #cat(u, nei)
       alt <- V(graph)[u]$dist+ E(graph)[u %->% nei]$weight
       if(alt<V(graph)[nei]$dist){
         V(graph)[nei]$dist <- alt
@@ -131,17 +135,34 @@ dijkstra <- function(graph, s, t){
         #V(graph)[nei]$previous<-list(V(graph)[u]$previous,V(graph)[nei]$name)
       }
     }
+    } else {
+      
+    }
+    
     }else{
       return(V(graph)[t]$previous)
     }
   }
 }
 
-print(dijkstra(graph, 's','t'))
+print(dijkstra(graph, 's','8'))
 ```
-
+```{r}
+others <- names(V(graph)[-1])
+print('Custom Dijkstra function')
+for (v in others){
+  cat('from s to',v, unlist(dijkstra(graph,'s',v)), '\n')
+}
+print('shortest_path igraph function')
+for (v in others){
+  cat('from s to', v, unlist(shortest_paths(graph,'s',v)),'\n')
+}
+```
 ##2 Again from the above graph. Let’s each node is a city and each edge represent the route between two cities. The edge’s weights represent the number of packages which can be delivered by the local delivery from a city to another city. Find maximum packages which can be delivered from s to t with the smallest number of routes by the igraph function in R)
 ```{r}
-max_flow(graph,'s','t')$value
-
+paths <- all_shortest_paths(graph, 's','t', weights = NA)
+weights <- lapply(paths$res, function(x){sum(E(graph = graph, path = x)$weight)})
+maxweight <- which.max(unlist(weights))
+paths$res[maxweight]
+sum(E(graph, path = paths$res[[maxweight]])$weight)
 ```
