@@ -1,0 +1,85 @@
+---
+title: "hw7"
+author: "Tanupat Boonchalermvichien 6271025130"
+date: "March 17, 2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## load graph
+
+```{r}
+library(igraph)
+library(igraphdata)
+data(karate)
+karate <- delete_edge_attr(karate, 'weight')
+```
+
+## make ground truth
+
+```{r}
+ground_truth <- make_clusters(karate, V(karate)$Faction)
+```
+
+## Girvan-Newman
+```{r}
+girvan_newman <- cluster_edge_betweenness(karate)
+```
+## Optimum modularity
+```{r}
+optimal <- cluster_optimal(karate)
+
+```
+## Sub-optimum modularity (greedy)
+```{r}
+suboptimal <- cluster_fast_greedy(karate)
+
+```
+## leading eigen
+```{r}
+eigen <- cluster_leading_eigen(karate)
+
+```
+## spin glass
+```{r, echo = FALSE}
+library(Matrix)
+comm_id <- rep(1:4, each =128)
+sub_comm_id <- rep(1:16, each = 32)
+pref_matrix <- outer(1:512, 1:512, function(i, j){
+  ifelse(sub_comm_id[i] == sub_comm_id[j], 10 /(32-1), 
+         ifelse(comm_id[i] == comm_id[j], 7.5 /(128-32),
+                10/(512-128)))
+})
+image(Matrix(pref_matrix))
+mat <- runif(length(pref_matrix)) < pref_matrix
+multilevel <- graph_from_adjacency_matrix(mat, mode = 'upper')
+
+outer <- cluster_spinglass(multilevel, spins = 32, gamma =1)
+inner <- cluster_spinglass(multilevel, spins = 32, gamma =3)
+sizes(outer)
+sizes(inner)
+```
+
+## Comparison
+```{r}
+rbind(girvan_newman %>% membership(),
+      optimal %>% membership(),
+      suboptimal %>% membership(),
+      eigen %>% membership(),
+      ground_truth %>% membership())
+
+
+compare_using_all_methods <- function(cl1,cl2){
+  methods <- args(compare)%>% as.list()%>%.$method %>% eval()
+  sapply(methods, compare, comm1 = cl1, comm2=cl2)
+}
+compare_using_all_methods(girvan_newman, ground_truth)
+compare_using_all_methods(optimal, ground_truth)
+compare_using_all_methods(suboptimal, ground_truth)
+compare_using_all_methods(eigen, ground_truth)
+
+
+```
