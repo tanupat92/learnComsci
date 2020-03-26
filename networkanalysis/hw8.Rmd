@@ -1,0 +1,102 @@
+---
+title: "hw8"
+author: "Tanupat Boonchalermvichien"
+date: "March 25, 2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Alignment network1 and network 2
+
+## Build network
+```{r}
+library(igraph)
+library(graphkernels)
+library(igraphdata)
+library(GraphAlignment)
+data("mutag")
+BiocManager::install('GraphAlignment')
+network1 <- make_graph(~ 1-2:3:4:5,
+                       2-3:4,
+                       5-6,
+                       6-7:8:9,
+                       7-8:9)
+
+network2 <- make_graph( ~ a-b:c:d:e:f,
+                        b-c:e,
+                        c-f:h,
+                        d-k, e-f, f-h,
+                        g-h:i,
+                        h-i:j,
+                        i-j,
+                        k-l:m:n,
+                        l-m, m-n) 
+net1 <- as_adjacency_matrix(network1, type= 'both')
+net1 <- as.matrix(net1)
+net2 <- as_adjacency_matrix(network2, type='both')
+net2 <- as.matrix(net2)
+
+```
+
+## align using AlignGraph package which is local alignment 
+
+```{r}
+R <- matrix(rep(c(0),9*14), nrow = 9)
+dim(R)
+pinitial <- InitialAlignment(psize = 14+9, mode='random')
+lookupLink <- c(-0.5,0.5,1.5)
+linkParams <- ComputeLinkParameters(net1,net2, pinitial, lookupLink)
+lookupNode <- c(-0.5,0.5,1.5)
+nodeParams <- ComputeNodeParameters(dimA=9, dimB=14, R, pinitial, lookupNode)
+al <- AlignNetworks(A=net1, B=net2, R=R, P=pinitial, linkScore=linkParams$ls, selfLinkScore = linkParams$lsSelf, nodeScore0 = nodeParams$s0, nodeScore1 = nodeParams$s1, lookupLink = lookupLink, lookupNode = lookupNode, bStart=.1, bEnd=30, maxNumSteps = 50)
+a = 0
+while (a<9){
+linkParams <- ComputeLinkParameters(net1, net2, al, lookupLink)
+nodeParams <- ComputeNodeParameters(9, 14, R, al, lookupNode)
+alnew <- AlignNetworks(A=net1, B=net2, R=R, P=pinitial, linkScore=linkParams$ls, selfLinkScore = linkParams$lsSelf, nodeScore0 = nodeParams$s0, nodeScore1 = nodeParams$s1, lookupLink = lookupLink, lookupNode = lookupNode, bStart=.1, bEnd=30, maxNumSteps = 50)
+a <- sum(al == alnew)
+al <- alnew
+}
+AlignedPairs(net1,net2,al)
+```
+1 aligns to a
+2 aligns to c
+3 aligns to f
+4 aligns to b
+5 aligns to d
+6 aligns to h
+7 aligns to m
+8 aligns to n
+9 aligns to l
+
+## kernel
+
+```{r}
+library(lsa)
+plot(mutag[[1]])
+K <- CalculateVertexHistKernel(mutag)
+L <- CalculateWLKernel(mutag, 100)
+
+isSymmetric(K)
+isSymmetric(L)
+
+cosK <- cosine(K)
+cosL <- cosine(L)
+image(cosK)
+image(cosL)
+```
+
+```{r}
+cosK[,1] > 0.8
+which(cosL[,1] > 0.8)
+
+```
+ use Weisfeiler-Lehman subtree kernel and cosine similarity
+ these are graph indexes that have more than 80% similarity 
+ 1   4   6   8  10  15  17  22  24  25  26  35  37  38  43  44  52 
+56  58  59  60  62  64  65  66  67  70  72  73  76  78  79  84  86
+89  94  95  97 100 105 106 109 112 113 114 117 118 120 121 124 125
+126 134 166 167 171 173 179 181
